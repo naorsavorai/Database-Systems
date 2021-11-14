@@ -1,0 +1,57 @@
+CREATE OR REPLACE FUNCTION val_score() RETURNS TRIGGER AS $$
+DECLARE good_score RECORD; check_gamekey RECORD; check_playerkey RECORD;  
+BEGIN
+SELECT * INTO check_gamekey
+FROM game g
+WHERE NEW.gdate =g.gdate 
+AND NEW.htid =g.htid;
+
+SELECT * INTO check_playerkey
+FROM  player p
+WHERE NEW.pid =p.pid;
+
+SELECT * INTO good_score
+FROM player p, game g
+WHERE P.pid = NEW.pid  
+AND g.gdate = NEW.gdate AND g.htid = NEW.htid
+AND (p.tid = g.htid OR p.tid = g.vtid);
+
+IF check_gamekey IS NULL 
+	THEN  BEGIN RAISE NOTICE 'System could not find game key in game table ';
+	RETURN NULL;END;
+END IF;	
+
+IF check_playerkey IS NULL 
+	THEN  BEGIN RAISE NOTICE 'System could not find player key in player table ';
+	RETURN NULL;END;
+END IF;	
+
+IF  good_score IS NULL THEN BEGIN RAISE NOTICE 'Bad score insertion:
+	 Player % does not play for participating teams',
+	 NEW.pid; 
+	RETURN NULL;END;
+ELSE
+	IF  good_score.tid = good_score.vtid 
+		THEN 
+		UPDATE game 
+		SET vscore = vscore + NEW.pscore
+		WHERE  game.htid = good_score.htid
+		AND    game.gdate = good_score.gdate ;
+	ELSE
+		UPDATE game 
+		SET hscore = hscore + NEW.pscore
+		WHERE  game.htid = good_score.htid
+		AND    game.gdate = good_score.gdate; 
+	END IF;	
+	RETURN NEW;
+END IF;	
+END;
+$$ LANGUAGE plpgsql; 
+
+CREATE TRIGGER val_score
+BEFORE INSERT ON points
+FOR EACH ROW
+EXECUTE PROCEDURE val_score();
+
+
+ 

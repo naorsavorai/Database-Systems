@@ -1,0 +1,47 @@
+CREATE TABLE team
+(tid int PRIMARY KEY,
+ Nickname varchar(20),
+ Color varchar(10)
+);
+
+CREATE TABLE player
+(pid int PRIMARY KEY ,
+ Pname varchar(20),
+ Address varchar(30),
+ Phone numeric(10,0),
+ Rating int,
+ tid int NOT NULL,
+ FOREIGN KEY (tid) REFERENCES team(tid)
+ );
+ 
+CREATE TABLE couch
+(cid int  PRIMARY KEY,
+ Cname varchar(20),
+ Address varchar(30),
+ Phone numeric(10,0),
+ Status int CHECK (status = 1 OR status = 0) ,
+ tid int ,
+ FOREIGN KEY (tid) REFERENCES team(tid)
+);
+
+CREATE TABLE game 
+(gdate date,
+ htid int,
+ vtid int,
+ hscore int DEFAULT 0,
+ vscore int DEFAULT 0,
+ CONSTRAINT home_date PRIMARY KEY (gdate, htid)
+);
+
+CREATE TABLE points 
+(pid int,
+ gdate date ,
+ htid int ,
+ pscore int DEFAULT 0,
+ CONSTRAINT player_gamescore PRIMARY KEY (pid, gdate, htid),
+ FOREIGN KEY (pid) REFERENCES player(pid),
+ FOREIGN KEY (gdate, htid) REFERENCES game(gdate,htid)
+ 
+);
+
+ 

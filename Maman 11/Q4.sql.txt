@@ -1,0 +1,122 @@
+1)
+
+SELECT pname  
+FROM player
+WHERE tid =2
+AND  rating > 3;
+
+############################################################################################################################################
+2)
+
+SELECT cname, nickname
+FROM couch c, team t
+WHERE c.tid =t.tid 
+AND t.color = 'Blue';
+
+############################################################################################################################################
+3)
+
+SELECT nickname
+FROM team t , game g
+WHERE (g.vscore > g.hscore
+AND t.tid = g.vtid)
+OR (g.hscore > g.vscore 
+AND t.tid =g.htid);
+
+############################################################################################################################################
+4)
+
+SELECT cname, COUNT(*) AS total_players 
+FROM couch c, player p
+WHERE c.status = 0 
+AND c.tid =p.tid
+GROUP BY c.cid;
+
+############################################################################################################################################
+5)
+
+WITH total_games AS
+	(SELECT p.pid ,COUNT(*) AS ngames 
+ 	 FROM player p ,points g 
+   	 WHERE p.pid = g.pid
+	 GROUP BY p.pid)
+	 
+SELECT pname, rating  
+FROM player p, total_games t
+WHERE p.pid = t.pid
+AND t.ngames >= 1
+AND p.pid NOT IN (SELECT pid 
+		  FROM points 
+		  WHERE pscore < 10);
+
+###########################################################################################################################################
+6)
+
+WITH player_total_score AS
+	(SELECT p.pid,p.pname, p.tid, SUM(k.pscore) AS ptotal_score
+	 FROM player p, points k
+	 WHERE  P.pid = k.pid
+	 GROUP BY p.pid)
+	
+	
+SELECT t.tid ,t.nickname, p.pname, p.ptotal_score
+FROM player_total_score p, team t
+WHERE p.tid =t.tid 
+AND p.ptotal_score in (SELECT  MAX(p.ptotal_score) AS max_player_tscore
+		       FROM player_total_score p, team t
+		       WHERE p.tid =t.tid
+	               GROUP BY p.tid);
+
+###########################################################################################################################################
+7)
+
+
+WITH losers AS
+
+			  (SELECT t.tid
+			   FROM team t
+			   WHERE tid not in  (SELECT tid
+								  FROM team t , game g
+								  WHERE (g.vscore > g.hscore
+								  AND t.tid = g.vtid)
+                                  OR (g.hscore > g.vscore 
+                                  AND t.tid =g.htid))),
+	 sum_of AS
+			(SELECT t.tid ,SUM (g.hscore) AS tscore 
+			FROM team t ,game g
+			WHERE t.tid = g.htid
+			GROUP BY t.tid
+			UNION
+			SELECT t.tid, SUM (g.vscore) AS tscore
+			FROM team t, game g
+			WHERE t.tid = g.vtid
+			GROUP BY t.tid),
+	
+	losers_total_sum AS
+			  (SELECT t.tid, SUM(tscore) AS tscore
+			   FROM sum_of t
+			   WHERE t.tid IN (SELECT tid
+							   FROM losers)
+			   GROUP BY t.tid),
+			   
+	loser_max AS
+			   (SELECT t.tid
+			    FROM losers_total_sum t
+				WHERE t.tscore = (select MAX(tscore) from losers_total_sum ))
+				
+				
+SELECT * 
+FROM team t
+WHERE t.tid IN (SELECT tid 
+			 FROM loser_max);
+			   
+			   
+	
+	
+
+
+
+
+
+
+
